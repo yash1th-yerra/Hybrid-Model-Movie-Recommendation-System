@@ -15,6 +15,9 @@ def create_app(config_class=Config):
     # Register Blueprints
     from app.auth import bp as auth_bp
     app.register_blueprint(auth_bp)
+    
+    from app.movies import bp as movies_bp
+    app.register_blueprint(movies_bp)
 
     @app.route('/')
     def index():
