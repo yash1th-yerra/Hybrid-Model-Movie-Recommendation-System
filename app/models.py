@@ -8,6 +8,14 @@ class User(db.Model):
     password_hash = db.Column(db.String(128))
     ratings = db.relationship('Rating', backref='user', lazy='dynamic')
 
+    def set_password(self, password):
+        from .extensions import bcrypt
+        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+
+    def check_password(self, password):
+        from .extensions import bcrypt
+        return bcrypt.check_password_hash(self.password_hash, password)
+
     def __repr__(self):
         return f'<User {self.username}>'
 

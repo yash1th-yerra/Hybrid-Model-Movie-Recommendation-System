@@ -1,6 +1,6 @@
 from flask import Flask
 from .config import Config
-from .extensions import db, migrate
+from .extensions import db, migrate, jwt, bcrypt
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -9,10 +9,12 @@ def create_app(config_class=Config):
     # Initialize Flask extensions
     db.init_app(app)
     migrate.init_app(app, db)
+    jwt.init_app(app)
+    bcrypt.init_app(app)
 
-    # Register Blueprints (Placeholder for now)
-    # from .main import bp as main_bp
-    # app.register_blueprint(main_bp)
+    # Register Blueprints
+    from app.auth import bp as auth_bp
+    app.register_blueprint(auth_bp)
 
     @app.route('/')
     def index():
