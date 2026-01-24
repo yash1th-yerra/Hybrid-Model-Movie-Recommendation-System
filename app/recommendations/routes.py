@@ -22,11 +22,17 @@ def recommend_hybrid():
         if not recommender_service.initialized:
             recommender_service.train_models()
             
-        recommendations = recommender_service.get_recommendations(title, limit)
+        result = recommender_service.get_recommendations(title, limit)
         
+        # result can be an empty list if not found (legacy behavior fallback) or a dict
+        if isinstance(result, list):
+             # Should not happen with new logic unless truly empty, but handle strictly
+             return jsonify({'error': 'Movie not found'}), 404
+
         return jsonify({
             'input_movie': title,
-            'recommendations': recommendations
+            'matched_movie': result['matched_title'],
+            'recommendations': result['recommendations']
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500

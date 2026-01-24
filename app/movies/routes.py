@@ -6,12 +6,36 @@ from datetime import datetime
 
 bp = Blueprint('movies', __name__, url_prefix='/api/movies')
 
+@bp.route('/search', methods=['GET'])
+def search_movies():
+    query = request.args.get('q', '', type=str)
+    if not query or len(query) < 2:
+        return jsonify({'error': 'Search query must be at least 2 characters'}), 400
+        
+    # SQL based case-insensitive search
+    # Using 'ilike' for PostgreSQL, but for SQLite 'like' is case-insensitive by default usually, 
+    # but SQLAlchemy 'ilike' handles it cross-db.
+    results = Movie.query.filter(Movie.title.ilike(f'%{query}%')).limit(20).all()
+    
+    movies_data = []
+    for movie in results:
+        movies_data.append({
+            'id': movie.id,
+            'title': movie.title,
+            'genres': movie.genres
+        })
+        
+    return jsonify({
+        'query': query,
+        'count': len(movies_data),
+        'results': movies_data
+    }), 200
+
 @bp.route('', methods=['GET'])
 def get_movies():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
     
-    # Cap per_page to avoid massive payloads
     if per_page > 100:
         per_page = 100
         
@@ -62,7 +86,6 @@ def rate_movie(movie_id):
     if not (0.5 <= score <= 5.0):
         return jsonify({'error': 'Rating must be between 0.5 and 5.0'}), 400
         
-    # Check if user already rated this movie
     existing_rating = Rating.query.filter_by(user_id=current_user_id, movie_id=movie_id).first()
     
     if existing_rating:

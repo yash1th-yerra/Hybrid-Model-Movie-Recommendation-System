@@ -62,17 +62,32 @@ class RecommendationService:
         self.mapper = {title: i for i, title in enumerate(user_movie_matrix.index)}
         self.index_to_title_collab = {i: title for i, title in enumerate(user_movie_matrix.index)}
 
-    def get_recommendations(self, title, n_recommendations=10):
+    def find_closest_title(self, title):
+        """Find the closest matching title using FuzzyWuzzy"""
+        if not self.initialized:
+            self.train_models()
+        
+        # If exact match exists, return it
+        if title in self.movie_idx:
+            return title
+            
+        # Otherwise find closest
+        from fuzzywuzzy import process
+        all_titles = list(self.movie_idx.keys())
+        match = process.extractOne(title, all_titles)
+        # match is (string, score)
+        if match and match[1] >= 60: # Threshold
+            return match[0]
+        return None
+
+    def get_recommendations(self, title_input, n_recommendations=10):
         if not self.initialized:
             self.train_models() # Auto-train on first request if needed
             
-        # exact match or crude fuzzy? The legacy used fuzzywuzzy. 
-        # For this API, let's assume the frontend sends a valid exact title (from search)
-        # OR we can implement simple case-insensitive matching.
+        title = self.find_closest_title(title_input)
         
-        # 1. Check existence
-        if title not in self.movie_idx:
-            # Try finding close match?
+        if not title:
+            # If still nothing
             return [] 
 
         # --- Content-Based ---
@@ -104,10 +119,11 @@ class RecommendationService:
             
             # 50/50 Weight
             hybrid_score = (s_content * 0.5) + (s_collab * 0.5)
+            # Store also the matched title to tell the user what we used
             final_scores.append({'title': mv, 'score': hybrid_score})
             
         final_scores = sorted(final_scores, key=lambda x: x['score'], reverse=True)
-        return final_scores[:n_recommendations]
+        return {'matched_title': title, 'recommendations': final_scores[:n_recommendations]}
 
 # Singleton Instance
 recommender_service = RecommendationService()
