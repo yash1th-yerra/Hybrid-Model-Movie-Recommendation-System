@@ -18,6 +18,9 @@ def create_app(config_class=Config):
     
     from app.movies import bp as movies_bp
     app.register_blueprint(movies_bp)
+    
+    from app.recommendations import bp as rec_bp
+    app.register_blueprint(rec_bp)
 
     @app.route('/')
     def index():
